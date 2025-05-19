@@ -59,13 +59,17 @@ export default function TabLayout() {
 
       {role === 'TECHNICIAN' && (
         <Tabs.Screen
-          name="tasks/(home)"
+          name="/tasks/list"
           options={{
             title: 'Tasks',
-            tabBarIcon: ({ color }) => <Ionicons name="list" size={24} color={color} />,
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="list" size={24} color={color} />
+            ),
           }}
         />
+
       )}
+
 
       {role === 'CLIENT' && (
         <Tabs.Screen
@@ -78,7 +82,7 @@ export default function TabLayout() {
       )}
 
       <Tabs.Screen
-        name="profile"
+        name="2-profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
