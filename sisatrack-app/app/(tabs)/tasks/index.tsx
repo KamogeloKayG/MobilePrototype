@@ -3,7 +3,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useEffect, useState } from 'react';
 import { getTasksByTechId } from '../../../lib/api/_tasks';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
     type task = {
     id: number;
@@ -22,23 +22,31 @@ export default function Tasks() {
   const [activeTab, setActiveTab] = useState<'Open' | 'Completed'>('Open');
 
 useEffect(() => {
-  getTasksByTechId(2)
-    .then((tasksFromApi) => {
-      const converted = tasksFromApi.map((task: any) => ({
-        id: task.taskID,
-        title: task.ticket.title,
-        company: task.ticket.client.companyName,
-        priority: task.ticket.priority,
-        location: "N/A", 
-        date: new Date(task.assignedDate),
-        status: task.status,
-      }));
-      
-      setTasks(converted);
-
-
-    })
-    .catch((err) => setError(err.message));
+    const fetchTasks = async () => {
+        try {
+            // Get user ID from AsyncStorage
+            const userID = await AsyncStorage.getItem('userID');
+            // Use the actual userID or fallback to 2 if not available
+            const userId = userID ? parseInt(userID) : 2;
+            
+            const tasksFromApi = await getTasksByTechId(userId);
+            const converted = tasksFromApi.map((task: any) => ({
+                id: task.taskID,
+                title: task.ticket.title,
+                company: task.ticket.client.companyName,
+                priority: task.ticket.priority,
+                location: "N/A", 
+                date: new Date(task.assignedDate),
+                status: task.status,
+            }));
+            
+            setTasks(converted);
+        } catch (err: any) {
+            setError(err.message);
+        }
+    };
+    
+    fetchTasks();
 }, []);
 
         const openTasks = tasks.filter(task => task.status !== 'Completed');
