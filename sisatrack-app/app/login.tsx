@@ -39,7 +39,7 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
 
-      <Button title="Login" onPress={handleLogin} />
+      <Button title="Login" onPress={handleLogin} color={'#FFD700'}/>
     </View>
   );
 }

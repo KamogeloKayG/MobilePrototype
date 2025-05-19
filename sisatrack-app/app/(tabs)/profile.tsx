@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserById } from '../../lib/api/auth';
 
 export default function Profile() {
   const [userInfo, setUserInfo] = useState({
@@ -25,28 +26,43 @@ export default function Profile() {
   
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   useEffect(() => {
-    // In real implementation, would fetch user info from API or AsyncStorage
     loadUserInfo();
   }, []);
   
   const loadUserInfo = async () => {
     try {
-      const role = await AsyncStorage.getItem('userRole');
-      const name = await AsyncStorage.getItem('userName');
+      setIsLoading(true);
       
-      if (role) {
-        setUserInfo(prev => ({ ...prev, role }));
+      // Get userId from AsyncStorage
+      const userID = await AsyncStorage.getItem('userID');
+      
+      if (!userID) {
+        console.error('User ID not found in AsyncStorage');
+        setIsLoading(false);
+        return;
       }
       
-      if (name) {
-        setUserInfo(prev => ({ ...prev, name }));
-      }
+      // Fetch user data from API
+      const userData = await getUserById(parseInt(userID));
       
-      // Other user info would be fetched from API
+      // Update user information with API data
+      setUserInfo(prev => ({
+        ...prev,
+        name: `${userData.name} ${userData.surname}`,
+        email: userData.email,
+        phone: userData.phoneNumber || prev.phone,
+        role: userData.role,
+        // Keep other fields from previous state if not provided by API
+      }));
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error loading user info:', error);
+      setIsLoading(false);
+      Alert.alert('Error', 'Failed to load profile information');
     }
   };
   
@@ -62,7 +78,7 @@ export default function Profile() {
           onPress: async () => {
             // Clear user session data
             try {
-              await AsyncStorage.multiRemove(['userToken', 'userRole', 'userName']);
+              await AsyncStorage.multiRemove(['userID', 'userRole']);
               // In a real app, you would navigate to login screen here
               Alert.alert('Logged out successfully');
             } catch (error) {

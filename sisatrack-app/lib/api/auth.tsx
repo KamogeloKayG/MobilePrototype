@@ -35,4 +35,16 @@ export async function login(email: string, password: string): Promise<User> {
   return user;
 }
 
+export async function getUserById(id: number): Promise<User> {
+  const res = await fetch(`${BASE_URL}/${id}`);
+
+  if (!res.ok) {
+    const error = await res.text();
+    throw new Error(error);
+  }
+
+  const user = await res.json();
+  return user;
+}
+
 

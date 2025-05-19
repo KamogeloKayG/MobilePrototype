@@ -5,52 +5,106 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity,
-  Dimensions
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getTasksByTechId } from '../../lib/api/_tasks';
+import { getUserById } from '../../lib/api/auth';
+
+// Define the Task type
+type Task = {
+  id: number;
+  title: string;
+  company: string;
+  priority: 'High' | 'Medium' | 'Low';
+  location: string;
+  date: Date;
+  status: 'Open' | 'In Progress' | 'Completed';
+};
 
 export default function Home() {
   const [role, setRole] = useState<string | null>(null);
   const [greeting, setGreeting] = useState('');
   const [userName, setUserName] = useState('User');
+  const [isLoading, setIsLoading] = useState(true);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [currentTask, setCurrentTask] = useState<Task | null>(null);
   
-  // Mock data for the dashboard - would be replaced with API calls
-  const taskStats = {
-    total: 12,
-    inProgress: 4,
-    completed: 5,
-    new: 3
-  };
+  // Task statistics derived from actual tasks
+  const [taskStats, setTaskStats] = useState({
+    total: 0,
+    inProgress: 0,
+    completed: 0,
+    new: 0
+  });
   
-  const recentActivities = [
+  // Recent activities will be derived from tasks later
+  const [recentActivities, setRecentActivities] = useState([
     { id: 1, text: 'Work order #1234 completed', time: '2 hours ago' },
     { id: 2, text: 'New task assigned: Air conditioning repair', time: '4 hours ago' },
     { id: 3, text: 'Replaced server cooling unit at DataCorp', time: '1 day ago' },
     { id: 4, text: 'Received parts for pending repair job', time: '2 days ago' },
-  ];
-  
-  const chartData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [
-      {
-        data: [3, 5, 2, 8, 6, 4, 2],
-        color: (opacity = 1) => `rgba(66, 66, 66, ${opacity})`,
-        strokeWidth: 2
-      }
-    ]
-  };
+  ]);
 
+  // Load user data and tasks
   useEffect(() => {
-    // Get user role from AsyncStorage
-    AsyncStorage.getItem('userRole').then((savedRole) => {
-      if (savedRole) setRole(savedRole.toLowerCase());
-    });
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get user ID and role from AsyncStorage
+        const userID = await AsyncStorage.getItem('userID');
+        const userRole = await AsyncStorage.getItem('userRole');
+        
+        if (userRole) {
+          setRole(userRole.toLowerCase());
+        }
+        
+        if (userID) {
+          // Fetch user data to get the name
+          const userData = await getUserById(parseInt(userID));
+          if (userData) {
+            setUserName(`${userData.name} ${userData.surname}`);
+          }
+          
+          // Fetch tasks assigned to this technician
+          const technicianTasksData = await getTasksByTechId(parseInt(userID));
+          
+          // Convert API response to match our Task type
+          const convertedTasks = technicianTasksData.map((task: any) => ({
+            id: task.taskID,
+            title: task.ticket.title,
+            company: task.ticket.client.companyName,
+            priority: task.ticket.priority,
+            location: task.ticket.client.location || "N/A",
+            date: new Date(task.assignedDate),
+            status: task.status,
+          }));
+          
+          setTasks(convertedTasks);
+          
+          // Calculate task statistics
+          const stats = {
+            total: convertedTasks.length,
+            inProgress: convertedTasks.filter(task => task.status === 'In Progress').length,
+            completed: convertedTasks.filter(task => task.status === 'Completed').length,
+            new: convertedTasks.filter(task => task.status === 'Open').length
+          };
+          setTaskStats(stats);
+          
+          // Find the first task with "In Progress" status to display as current
+          const inProgressTask = convertedTasks.find(task => task.status === 'In Progress');
+          setCurrentTask(inProgressTask || null);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Get user name from AsyncStorage (mock for now)
-    AsyncStorage.getItem('userName').then((name) => {
-      if (name) setUserName(name);
-    });
+    loadData();
     
     // Set greeting based on time of day
     const hour = new Date().getHours();
@@ -60,6 +114,37 @@ export default function Home() {
     else greeting = 'Good Evening';
     setGreeting(greeting);
   }, []);
+
+  // Format date for display
+  const formatTaskDate = (date: Date) => {
+    const taskDate = new Date(date);
+    const today = new Date();
+    
+    // Check if task is today
+    if (taskDate.toDateString() === today.toDateString()) {
+      return `Today, ${taskDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // Check if task is tomorrow
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    if (taskDate.toDateString() === tomorrow.toDateString()) {
+      return `Tomorrow, ${taskDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // Otherwise show full date
+    return taskDate.toLocaleDateString([], { month: 'short', day: 'numeric' }) + 
+           `, ${taskDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FFD700" />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -139,20 +224,41 @@ export default function Home() {
         ))}
       </View>
 
-      {/* Upcoming Tasks */}
+      {/* Current Task */}
       <View style={styles.upcomingTasksContainer}>
-        <Text style={styles.sectionTitle}>Currect Task</Text>
-        <View style={styles.upcomingTaskItem}>
-          <View style={styles.upcomingTaskIconContainer}>
-            <Ionicons name="build-outline" size={20} color="#fff" />
+        <Text style={styles.sectionTitle}>Current Task</Text>
+        {currentTask ? (
+          <View style={styles.upcomingTaskItem}>
+            <View style={styles.upcomingTaskIconContainer}>
+              <Ionicons name="build-outline" size={20} color="#fff" />
+            </View>
+            <View style={styles.upcomingTaskContent}>
+              <Text style={styles.upcomingTaskTitle}>
+                {currentTask.title} at {currentTask.company}
+              </Text>
+              <Text style={styles.upcomingTaskTime}>
+                {formatTaskDate(currentTask.date)}
+              </Text>
+              <View style={styles.taskDetailsRow}>
+                <View style={[styles.priorityBadge, 
+                  currentTask.priority === 'High' ? styles.highPriority : 
+                  currentTask.priority === 'Medium' ? styles.mediumPriority : 
+                  styles.lowPriority
+                ]}>
+                  <Text style={styles.priorityText}>{currentTask.priority}</Text>
+                </View>
+                <Text style={styles.locationText}>
+                  <Ionicons name="location-outline" size={12} color="#757575" /> {currentTask.location}
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#757575" />
           </View>
-          <View style={styles.upcomingTaskContent}>
-            <Text style={styles.upcomingTaskTitle}>AC Repair at TechCorp</Text>
-            <Text style={styles.upcomingTaskTime}>Today, 10:00 AM</Text>
+        ) : (
+          <View style={styles.noTasksContainer}>
+            <Text style={styles.noTasksText}>No tasks in progress</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#757575" />
-        </View>
-        
+        )}
       </View>
     </ScrollView>
   );
@@ -162,6 +268,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F7FA',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F7FA',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#757575',
   },
   header: {
     padding: 20,
@@ -337,4 +453,40 @@ const styles = StyleSheet.create({
     color: '#757575',
     marginTop: 2,
   },
+  taskDetailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  priorityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 10,
+  },
+  highPriority: {
+    backgroundColor: '#ffcdd2',
+  },
+  mediumPriority: {
+    backgroundColor: '#fff9c4',
+  },
+  lowPriority: {
+    backgroundColor: '#c8e6c9',
+  },
+  priorityText: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  locationText: {
+    fontSize: 10,
+    color: '#757575',
+  },
+  noTasksContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noTasksText: {
+    color: '#757575',
+    fontSize: 14,
+  }
 });
