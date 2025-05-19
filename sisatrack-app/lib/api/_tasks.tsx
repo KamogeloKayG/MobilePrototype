@@ -17,7 +17,6 @@ export async function getTasksByTechId(techid: number): Promise<Task[]> {
      throw new Error('Failed to fetch tasks');
    }
   const data = await res.json();  // parse JSON
-  console.log(data);              // now logs actual task data
   return data;
 }
 

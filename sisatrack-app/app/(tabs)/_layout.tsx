@@ -9,7 +9,8 @@ export default function TabLayout() {
 
   useEffect(() => {
     AsyncStorage.getItem('userRole').then((savedRole) => {
-      if (savedRole) setRole(savedRole.toLowerCase());
+      if (savedRole) setRole(savedRole.toUpperCase());
+      console.log(role);
     });
   }, []);
 
@@ -58,7 +59,7 @@ export default function TabLayout() {
 
       {role === 'TECHNICIAN' && (
         <Tabs.Screen
-          name="/tasks/index"
+          name="tasks"
           options={{
             title: 'Tasks',
             tabBarIcon: ({ color }) => (
