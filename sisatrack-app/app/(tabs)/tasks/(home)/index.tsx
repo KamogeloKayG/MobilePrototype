@@ -1,6 +1,6 @@
 import TaskCard from '@/components/taskCard';
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useEffect, useState } from 'react';
 import { getTasksByTechId } from '../../../../lib/api/_tasks';
 
@@ -18,25 +18,34 @@ import { getTasksByTechId } from '../../../../lib/api/_tasks';
 export default function Tasks() {
       const [tasks, setTasks] = useState<task[]>([]);
   const [error, setError] = useState<string | null>(null);
-http://192.168.137.1:8080/api/tasks/technician/2
+  const [activeTab, setActiveTab] = useState<'Open' | 'Completed'>('Open');
+
 useEffect(() => {
   getTasksByTechId(2)
     .then((tasksFromApi) => {
       const converted = tasksFromApi.map((task: any) => ({
         id: task.taskID,
-        title: task.description,
+        title: task.ticket.title,
         company: task.ticket.client.companyName,
         priority: task.ticket.priority,
         location: "N/A", // or actual location if available
         date: new Date(task.assignedDate),
         status: task.status,
       }));
+      
       setTasks(converted);
+
+
     })
     .catch((err) => setError(err.message));
 }, []);
 
+        const openTasks = tasks.filter(task => task.status !== 'Completed');
+        const completedTasks = tasks.filter(task => task.status === 'Completed');
+        const filteredTasks = activeTab === 'Open' ? openTasks : completedTasks;
+
   return (
+    
     <View style={styles.container}>
       {/* Tasks Title Bar */}
       <View style={styles.titleBar}>
@@ -45,18 +54,26 @@ useEffect(() => {
       
       {/* Tabs */}
       <View style={styles.tabContainer}>
-        <View style={[styles.tab, styles.activeTab]}>
-          <Text style={styles.tabText}>Open({tasks.length})</Text>
-        </View>
-        <View style={styles.tab}>
-          <Text style={styles.tabText}>Completed</Text>
-        </View>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'Open' && styles.activeTab]} 
+          onPress={() => setActiveTab('Open')}
+        >
+          <Text style={styles.tabText}>Open({openTasks.length})</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'Completed' && styles.activeTab]} 
+          onPress={() => setActiveTab('Completed')}
+        >
+          <Text style={styles.tabText}>Completed({completedTasks.length})</Text>
+        </TouchableOpacity>
       </View>
+
       
       {/* Task List */}
       <ScrollView style={styles.taskList}>
-            {tasks.map((task) => (
-        <TaskCard key={task.id} {...task} />
+        {filteredTasks.map((task) => (
+          <TaskCard key={task.id} {...task} />
         ))}
       </ScrollView>
     </View>
