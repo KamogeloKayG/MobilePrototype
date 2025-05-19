@@ -21,7 +21,6 @@ export default function TabLayout() {
         headerTitle: () => null,
         headerLeft: () => (
           <View style={styles.logoContainer}>
-            <View style={styles.logoSquare}></View>
             <Text style={styles.logoText}>SISATRACK</Text>
           </View>
         ),
@@ -59,7 +58,7 @@ export default function TabLayout() {
 
       {role === 'TECHNICIAN' && (
         <Tabs.Screen
-          name="/tasks/list"
+          name="/tasks/index"
           options={{
             title: 'Tasks',
             tabBarIcon: ({ color }) => (
@@ -67,9 +66,7 @@ export default function TabLayout() {
             ),
           }}
         />
-
       )}
-
 
       {role === 'CLIENT' && (
         <Tabs.Screen
@@ -82,7 +79,7 @@ export default function TabLayout() {
       )}
 
       <Tabs.Screen
-        name="2-profile"
+        name="profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
@@ -97,12 +94,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 16,
-  },
-  logoSquare: {
-    width: 24,
-    height: 24,
-    backgroundColor: '#FFD700',
-    marginRight: 10,
   },
   logoText: {
     fontWeight: 'bold',
