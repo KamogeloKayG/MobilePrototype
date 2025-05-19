@@ -18,12 +18,24 @@ import { getTasksByTechId } from '../../../../lib/api/_tasks';
 export default function Tasks() {
       const [tasks, setTasks] = useState<task[]>([]);
   const [error, setError] = useState<string | null>(null);
+http://192.168.137.1:8080/api/tasks/technician/2
+useEffect(() => {
+  getTasksByTechId(2)
+    .then((tasksFromApi) => {
+      const converted = tasksFromApi.map((task: any) => ({
+        id: task.taskID,
+        title: task.description,
+        company: task.ticket.client.companyName,
+        priority: task.ticket.priority,
+        location: "N/A", // or actual location if available
+        date: new Date(task.assignedDate),
+        status: task.status,
+      }));
+      setTasks(converted);
+    })
+    .catch((err) => setError(err.message));
+}, []);
 
-  useEffect(() => {
-    getTasksByTechId(2)
-      .then(setTasks)
-      .catch((err) => setError(err.message));
-  }, []);
   return (
     <View style={styles.container}>
       {/* Tasks Title Bar */}
