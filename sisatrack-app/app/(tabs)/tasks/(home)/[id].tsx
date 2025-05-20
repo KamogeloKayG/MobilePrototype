@@ -1,67 +1,62 @@
-import React, { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
+import { getTaskById } from '../../../../lib/api/_tasks';
     type task = {
     id: number;
     title: string;
     company: string;
     priority: 'High' | 'Medium' | 'Low';
+    description:string,
     location: string;
     date: Date;
-    status: 'Pending' | 'In Progress' | 'Completed';
+    clientName:string,
+    clientNumber:string,
+    status: 'Open' | 'In Progress' | 'Completed';
     };
 
-  const tasks: task[] = [
-  {
-    id: 1,
-    title: 'Fix Wi-Fi Router',
-    company: 'SisaTech Ltd',
-    priority: 'High',
-    location: 'Midrand, Johannesburg',
-    date: new Date('2025-05-18'),
-    status: 'In Progress',
-  },
-  {
-    id: 2,
-    title: 'Install CCTV System',
-    company: 'Greenline Security',
-    priority: 'Medium',
-    location: 'Soweto, Johannesburg',
-    date: new Date('2025-05-19'),
-    status: 'Pending',
-  },
-  {
-    id: 3,
-    title: 'Server Maintenance',
-    company: 'NetCore Solutions',
-    priority: 'Low',
-    location: 'Randburg, Johannesburg',
-    date: new Date('2025-05-20'),
-    status: 'Pending',
-  },
-  {
-    id: 4,
-    title: 'Network Upgrade',
-    company: 'SisaNet',
-    priority: 'High',
-    location: 'Sandton, Johannesburg',
-    date: new Date('2025-05-21'),
-    status: 'Pending',
-  },
-];
+
 
 export default function TaskDetails() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const taskId = parseInt(id as string, 10);
-  
-  // Find the task by ID
-  const task = tasks.find(t => t.id === taskId);
+  const [_task, setTask] = useState<task | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);  
+
+
+    useEffect(() => {
+      const fetchTask = async () => {
+        try {
+          const data: any = await getTaskById(taskId); // 👈 avoid typing mismatch
+          const converted = {
+            id: data.taskID,
+            title: data.ticket.title,
+            description: data.ticket.description,
+            clientName: data.ticket.client.name,
+            clientNumber: data.ticket.client.phoneNumber,
+            company: data.ticket?.client?.companyName ?? 'Unknown',
+            priority: data.ticket?.priority ?? 'Low',
+            location: 'N/A',
+            date: new Date(data.assignedDate),
+            status: data.status,
+          };
+          setTask(converted);
+        } catch (err) {
+          setError('Failed to load task.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchTask();
+    }, []);
+
   
   // If task not found
-  if (!task) {
+  if (!_task) {
     return (
       <View style={styles.notFoundContainer}>
         <Text style={styles.notFoundText}>Task not found</Text>
@@ -77,7 +72,7 @@ export default function TaskDetails() {
 
   // Get priority color
   const getPriorityColor = () => {
-    switch (task.priority) {
+    switch (_task.priority) {
       case 'High':
         return '#dc3545'; // --priority-high from web
       case 'Medium':
@@ -91,12 +86,12 @@ export default function TaskDetails() {
 
   // Get status color
   const getStatusColor = () => {
-    switch (task.status) {
+    switch (_task.status) {
       case 'Completed':
         return '#28a745';
       case 'In Progress':
         return '#6c63ff'; // --button-secondary from web
-      case 'Pending':
+      case 'Open':
         return '#6c757d';
       default:
         return '#6c757d';
@@ -125,17 +120,19 @@ export default function TaskDetails() {
     );
   };
 
+  
+
   return (
     <ScrollView style={styles.container}>
       {/* Task Header */}
       <View style={styles.taskHeader}>
         <View style={styles.taskIdTitle}>
-          <Text style={styles.taskId}>Task #{task.id}</Text>
-          <Text style={styles.taskTitle}>{task.title}</Text>
+          <Text style={styles.taskId}>Task #{_task.id}</Text>
+          <Text style={styles.taskTitle}>{_task.title}</Text>
         </View>
         <View style={styles.taskStatus}>
           <View style={[styles.statusPill, { backgroundColor: getStatusColor() }]}>
-            <Text style={styles.statusText}>{task.status}</Text>
+            <Text style={styles.statusText}>{_task.status}</Text>
           </View>
         </View>
       </View>
@@ -143,27 +140,27 @@ export default function TaskDetails() {
       {/* Basic Information Card */}
       <View style={styles.card}>
         <View style={styles.cardTitle}>
-          <Text style={styles.cardTitleText}>Basic Information</Text>
+          <Text style={styles.cardTitleText}>{_task.title}</Text>
         </View>
         <View style={styles.cardContent}>
           <View style={styles.grid}>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Company</Text>
-              <Text style={styles.fieldValue}>{task.company}</Text>
+              <Text style={styles.fieldValue}>{_task.company}</Text>
             </View>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Service Type</Text>
-              <Text style={styles.fieldValue}>Service</Text>
+              <Text style={styles.fieldValue}>{_task.title} Service</Text>
             </View>
           </View>
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Description</Text>
-            <Text style={styles.fieldValue}>description</Text>
+            <Text style={styles.fieldValue}>{_task.description}</Text>
           </View>
           <View style={styles.grid}>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Location</Text>
-              <Text style={styles.fieldValue}>{task.location}</Text>
+              <Text style={styles.fieldValue}>N/A</Text>
             </View>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Task Type</Text>
@@ -182,38 +179,27 @@ export default function TaskDetails() {
           <View style={styles.grid}>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Contact Person</Text>
-              <Text style={styles.fieldValue}>client</Text>
+              <Text style={styles.fieldValue}>{_task.clientName}</Text>
             </View>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Contact Number</Text>
-              <Text style={styles.fieldValue}>client contact</Text>
+              <Text style={styles.fieldValue}>{_task.clientNumber}</Text>
             </View>
           </View>
         </View>
       </View>
 
-      {/* Technical Information Card */}
+
       <View style={styles.card}>
         <View style={styles.cardTitle}>
-          <Text style={styles.cardTitleText}>Technical Information</Text>
         </View>
         <View style={styles.cardContent}>
-          <View style={styles.techInfo}>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Assigned To</Text>
-              <Text style={styles.fieldValue}>name</Text>
-            </View>
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>Priority</Text>
-              <Text style={[styles.priorityBadge, { color: getPriorityColor() }]}>
-                {task.priority}
-              </Text>
-            </View>
-          </View>
           <View style={styles.grid}>
             <View style={styles.field}>
               <Text style={styles.fieldLabel}>Created Date</Text>
-              <Text style={styles.fieldValue}>{(task.date).toString()}</Text>
+              <Text style={styles.fieldValue}>
+                {_task?.date.toLocaleString()}
+              </Text>
             </View>
           </View>
         </View>
@@ -221,13 +207,13 @@ export default function TaskDetails() {
 
       {/* Action Buttons */}
       <View style={styles.actionButtons}>
-        {task.status === 'Pending' && (
+        {_task.status === 'Open' && (
           <TouchableOpacity style={styles.btnPrimary} onPress={handleStartTask}>
             <Ionicons name="play" size={16} color="#FFFFFF" />
             <Text style={styles.btnText}>Start Task</Text>
           </TouchableOpacity>
         )}
-        {task.status === 'In Progress' && (
+        {_task.status === 'Open' && (
           <TouchableOpacity style={styles.btnSecondary} onPress={handleCompleteTask}>
             <Ionicons name="checkmark" size={16} color="#000000" />
             <Text style={styles.btnSecondaryText}>Complete Task</Text>
@@ -239,10 +225,6 @@ export default function TaskDetails() {
         </TouchableOpacity>
       </View>
 
-      {/* Footer Note */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Last updated: May 18, 2025</Text>
-      </View>
     </ScrollView>
   );
 }
@@ -320,111 +302,111 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-  cardTitleText: {
+    cardTitleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#495057',
+    color: '#343a40',
   },
   cardContent: {
-    padding: 15,
+    padding: 12,
   },
   grid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
+    marginBottom: 12,
   },
   field: {
     flex: 1,
-    marginBottom: 12,
   },
   fieldLabel: {
-    fontWeight: '600',
-    marginBottom: 2,
-    color: '#495057',
-    fontSize: 13,
+    fontSize: 12,
+    color: '#6c757d',
+    marginBottom: 4,
   },
   fieldValue: {
-    color: '#333',
     fontSize: 14,
+    fontWeight: '500',
+    color: '#343a40',
   },
   techInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  priorityBadge: {
-    fontWeight: '500',
-    fontSize: 14,
-  },
-  actionButtons: {
-    padding: 16,
-    flexDirection: 'column',
+    marginBottom: 12,
     gap: 12,
   },
-  btnPrimary: {
-    backgroundColor: '#343a40',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+  priorityBadge: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'space-around',
     alignItems: 'center',
+    marginHorizontal: 16,
+    marginVertical: 24,
+    gap: 10,
+  },
+  btnPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#6c63ff',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     gap: 8,
   },
   btnSecondary: {
-    backgroundColor: '#FFD700',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 6,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#ffc107',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     gap: 8,
   },
   btnOutline: {
-    backgroundColor: 'transparent',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#343a40',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     gap: 8,
   },
   btnText: {
-    color: '#FFFFFF',
-    fontWeight: '500',
+    color: '#ffffff',
     fontSize: 14,
+    fontWeight: '600',
   },
   btnSecondaryText: {
     color: '#000000',
-    fontWeight: '500',
     fontSize: 14,
+    fontWeight: '600',
   },
   btnOutlineText: {
     color: '#343a40',
-    fontWeight: '500',
     fontSize: 14,
+    fontWeight: '600',
   },
   backButton: {
-    backgroundColor: '#343a40',
+    marginTop: 16,
+    backgroundColor: '#6c63ff',
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    paddingHorizontal: 20,
+    borderRadius: 8,
   },
   backButtonText: {
-    color: '#FFFFFF',
+    color: '#fff',
+    fontSize: 14,
     fontWeight: '500',
   },
   footer: {
-    backgroundColor: '#f5f5f5',
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 16,
-    borderRadius: 6,
     alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
   },
   footerText: {
     fontSize: 12,

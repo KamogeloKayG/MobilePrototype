@@ -9,7 +9,8 @@ export default function TabLayout() {
 
   useEffect(() => {
     AsyncStorage.getItem('userRole').then((savedRole) => {
-      if (savedRole) setRole(savedRole.toLowerCase());
+      if (savedRole) setRole(savedRole.toUpperCase());
+      console.log(role);
     });
   }, []);
 
@@ -21,7 +22,6 @@ export default function TabLayout() {
         headerTitle: () => null,
         headerLeft: () => (
           <View style={styles.logoContainer}>
-            <View style={styles.logoSquare}></View>
             <Text style={styles.logoText}>SISATRACK</Text>
           </View>
         ),
@@ -59,10 +59,12 @@ export default function TabLayout() {
 
       {role === 'TECHNICIAN' && (
         <Tabs.Screen
-          name="tasks/(home)"
+          name="tasks"
           options={{
             title: 'Tasks',
-            tabBarIcon: ({ color }) => <Ionicons name="list" size={24} color={color} />,
+            tabBarIcon: ({ color }) => (
+              <Ionicons name="list" size={24} color={color} />
+            ),
           }}
         />
       )}
@@ -93,12 +95,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 16,
-  },
-  logoSquare: {
-    width: 24,
-    height: 24,
-    backgroundColor: '#FFD700',
-    marginRight: 10,
   },
   logoText: {
     fontWeight: 'bold',
