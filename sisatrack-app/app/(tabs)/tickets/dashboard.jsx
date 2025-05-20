@@ -50,44 +50,53 @@ export default function TicketDashboard() {
   ];*/
 
   useEffect(() => {
-    AsyncStorage.getItem('userRole').then((savedRole) => {
+    const fetchTickets = async () => {
+      const savedRole = await AsyncStorage.getItem('userRole');
       if (savedRole) setRole(savedRole.toLowerCase());
-    });
-
-    AsyncStorage.getItem('userName').then((name) => {
+  
+      const name = await AsyncStorage.getItem('userName');
       if (name) setUserName(name);
-    });
-
-    const hour = new Date().getHours();
-    let greeting = '';
-    if (hour < 12) greeting = 'Good Morning';
-    else if (hour < 18) greeting = 'Good Afternoon';
-    else greeting = 'Good Evening';
-    setGreeting(greeting);
-
-    if(!AsyncStorage.getItem('ticketData')){
-      const userID =AsyncStorage.getItem('userID');
-      fetch(`http://localhost:8080/api/tickets/client/${userID}`, {})
-    .then(res=>{
-      if(!res.ok){
-        throw new Error("Failed to create ticket");
+  
+      const hour = new Date().getHours();
+      if (hour < 12) setGreeting('Good Morning');
+      else if (hour < 18) setGreeting('Good Afternoon');
+      else setGreeting('Good Evening');
+  
+      console.log('About to fetch data');
+  
+      const cachedData = await AsyncStorage.getItem('ticketData');
+      if (!cachedData) {
+        const userID = await AsyncStorage.getItem('userID');
+        if (!userID) return;
+  
+        try {
+          const res = await fetch(`http://localhost:8080/api/tickets/client/${userID}`);
+          if (!res.ok) throw new Error('Failed to fetch ticket data');
+          const data = await res.json();
+          console.log('New ticket:', data);
+          setTicketData(data);
+          await AsyncStorage.setItem('ticketData', JSON.stringify(data));
+        } catch (error) {
+          console.error(error);
+        }
+      } else {
+        try {
+          const parsed = JSON.parse(cachedData);
+          setTicketData(parsed);
+        } catch (e) {
+          console.error('Failed to parse cached ticketData:', e);
+        }
       }
-      return res.json();
-    }).then(data=>{
-      console.log("New ticket:"+data);
-      setTicketData(data);
-      AsyncStorage.setItem('ticketData',JSON.stringify(data));
-    }).catch(error=>{
-      console.error(error);
-    });
-    }
-    
+    };
+  
+    fetchTickets();
   }, []);
-
+  
   const router = useRouter();
 
-const handleTicketPress = (ticketId) => {
-  router.push(`/tickets/${ticketId}`);
+const handleTicketPress = (ticketID) => {
+  router.push(`/tickets/${ticketID}`);
+  
 };
 
   return (
@@ -137,19 +146,30 @@ const handleTicketPress = (ticketId) => {
         </View>
       </View>
 
+      <View style={styles.createButtonContainer}>
+  <TouchableOpacity
+    onPress={() => router.push('/tickets/CreateTicket')} 
+    style={styles.createButton}
+  >
+    <Ionicons name="add-circle-outline" size={20} color="#fff" />
+    <Text style={styles.createButtonText}>Create Ticket</Text>
+  </TouchableOpacity>
+</View>
+
       {/* Recent Ticket Activity */}
       <View style={styles.recentActivityContainer}>
         <Text style={styles.sectionTitle}>Recent Tickets</Text>
-        {ticketData.map((ticket) => (
+        {ticketData&&ticketData.map((ticket) => (
+          
           <TouchableOpacity
-            key={ticket.id}
+            key={ticket.ticketID}
             onPress={() => handleTicketPress(ticket.ticketID)}
             style={styles.activityItem}
           >
             <View style={styles.activityDot} />
             <View style={styles.activityContent}>
-              <Text style={styles.activityText}>{ticket.text}</Text>
-              <Text style={styles.activityTime}>{ticket.time}</Text>
+              <Text style={styles.activityText}>{ticket.title}</Text>
+              <Text style={styles.activityTime}>{ticket.dateCreated}</Text>
             </View>
             <View style={styles.statusContainer}>
               <Text
@@ -276,5 +296,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     overflow: 'hidden',
     textAlign: 'center',
+  },createButtonContainer: {
+    marginHorizontal: 20,
+    marginBottom: 10,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
-});
+  
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007bff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+  },
+  
+  createButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  
+}
+);

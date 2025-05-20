@@ -157,7 +157,7 @@ const TroubleshootingFormScreen = () => {
     // Generate diagnostic summary
     const diagnosticSummary = generateDiagnosticSummary();
     const userID = AsyncStorage.getItem('userID');
-
+    console.log("userID"+userID)
     if(!userID){
       return ;
     }
@@ -170,17 +170,19 @@ const TroubleshootingFormScreen = () => {
       }
     };
 
-    fetch(`http://localhost:8080/api/tickets`, {
+    console.log("About to send data");
+    fetch(`http://localhost:8080/api/tickets/createTicket`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ticketData),
     }).then(res=>{
       if(!res.ok){
-        throw new Error("Failed to create ticket");
+        throw new Error("Failed to create ticket"+res);
       }
       return res.json();
     }).then(data=>{
       console.log("New ticket:"+data);
+      
     }).catch(error=>{
       console.error(error);
     });

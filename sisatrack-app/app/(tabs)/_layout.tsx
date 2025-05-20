@@ -9,10 +9,14 @@ export default function TabLayout() {
 
   useEffect(() => {
     AsyncStorage.getItem('userRole').then((savedRole) => {
-      if (savedRole) setRole(savedRole.toUpperCase());
-      console.log(role);
+      if (savedRole) {
+        const upperRole = savedRole.toUpperCase();
+        console.log('Loaded role:', upperRole); // ✅ log the correct value
+        setRole(upperRole);
+      }
     });
   }, []);
+
 
   if (!role) return null; // wait until role is loaded
 
@@ -49,34 +53,49 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Ionicons name="home" size={24} color={color} />,
-        }}
-      />
-
       {role === 'TECHNICIAN' && (
-        <Tabs.Screen
-          name="tasks"
-          options={{
-            title: 'Tasks',
-            tabBarIcon: ({ color }) => (
-              <Ionicons name="list" size={24} color={color} />
-            ),
-          }}
-        />
+        <>
+          <Tabs.Screen
+            name="home"
+            options={{
+              title: 'Home',
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="home-outline" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="tasks"
+            options={{
+              title: 'Tasks',
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="list" size={24} color={color} />
+              ),
+            }}
+          />
+        </>
       )}
 
       {role === 'CLIENT' && (
-        <Tabs.Screen
-          name="tickets/index"
-          options={{
-            title: 'Tickets',
-            tabBarIcon: ({ color }) => <Ionicons name="list" size={24} color={color} />,
-          }}
-        />
+
+        <>
+          <Tabs.Screen
+            name="home"
+            options={{
+              title: 'Home',
+              tabBarIcon: ({ color }) => (
+                <Ionicons name="home-outline" size={24} color={color} />
+              ),
+            }}
+          />
+          <Tabs.Screen
+            name="tickets"
+            options={{
+              title: 'Tickets',
+              tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color} />,
+            }}
+          />
+        </>
       )}
 
       <Tabs.Screen

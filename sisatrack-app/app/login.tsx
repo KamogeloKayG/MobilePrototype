@@ -13,6 +13,8 @@ export default function LoginScreen() {
       const user = await login(email, password);
       await AsyncStorage.setItem('userRole', user.role.toLowerCase());
       router.replace('/(tabs)/home');
+
+      
     } catch (error) {
       console.error('Login failed');
     }

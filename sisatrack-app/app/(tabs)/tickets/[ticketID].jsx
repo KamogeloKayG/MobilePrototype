@@ -15,6 +15,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function TicketDetailsScreen() {
   const router = useRouter();
   const { ticketID } = useLocalSearchParams();
+  console.log("ticketID from params:", ticketID);
 
   const [ticketData, setTicketData] = useState(null);
   const [task, setTask] = useState(null);
@@ -29,6 +30,14 @@ export default function TicketDetailsScreen() {
           const tickets = JSON.parse(storedTickets);
           const ticket = tickets.find((t) => t.ticketID == ticketID);
           setTicketData(ticket || null);
+        }else {
+          const userID = await AsyncStorage.getItem('userID');
+          // Now do something with userID if needed (you're not using it here though)
+          const response = await fetch(`http://localhost:8080/api/tickets/${ticketID}`);
+          if (!response.ok) throw new Error("Could not fetch tickets");
+          const data = await response.json();
+          setTicketData(data);
+          console.log("Ticket data found:"+data);
         }
       } catch (error) {
         console.error("Failed to load ticket data", error);
@@ -53,9 +62,9 @@ export default function TicketDetailsScreen() {
         setTask(null);
       })
       .finally(() => setLoading(false));
-  }, [ticketID]);
+  }, [ticketData]);
 
-  if (loading || !ticketData) {
+  if ( !ticketData) {
     return (
       <View style={[styles.container, { justifyContent: "center", flex: 1 }]}>
         <ActivityIndicator size="large" color="#facc15" />
@@ -127,7 +136,7 @@ export default function TicketDetailsScreen() {
           <View style={styles.field}>
             <Text style={styles.fieldLabel}>Client Company:</Text>
             <Text style={styles.fieldValue}>
-              {ticketData.client?.CompanyName || "N/A"}
+              {ticketData.client?.companyName || "N/A"}
             </Text>
           </View>
           <View style={styles.field}>

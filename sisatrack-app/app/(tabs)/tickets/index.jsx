@@ -21,13 +21,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
     const [search, setSearch] = useState('');
     const router = useRouter();
     const [ticketData,setTicketData]=useState([]);
+    const [userID,setUserID]=useState();
+    
     
   
     const renderItem = ({ item }) => (
       <View style={styles.row}>
         <Text style={styles.idCol}>{item.title}</Text>
         <Text style={styles.statusCol}>{item.status}</Text>
-        <Text style={styles.dateCol}>{item.dateOpened}</Text>
+        <Text style={styles.dateCol}>{item.dateCreated}</Text>
         <TouchableOpacity
           style={styles.viewButton}
           onPress={() => router.push(`/tickets/${item.ticketID}`)}
@@ -38,25 +40,36 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
     );
   
     useEffect(()=>{
-
-      
-      if(!AsyncStorage.getItem('ticketData')){
-        const userID =AsyncStorage.getItem('userID');
-        fetch(`http://localhost:8080/api/tickets/client/${userID}`, {})
-      .then(res=>{
-        if(!res.ok){
-          throw new Error("Failed to create ticket");
+      const loadUserID = async () => {
+        try {
+          const storedID = await AsyncStorage.getItem('userID');
+          if (storedID) {
+            setUserID(storedID); // storedID is a string
+          }
+        } catch (error) {
+          console.error('Failed to load userID from storage:', error);
         }
-        return res.json();
-      }).then(data=>{
-        console.log("New ticket:"+data);
-        setTicketData(data);
-        AsyncStorage.setItem('ticketData',JSON.stringify(data));
-      }).catch(error=>{
-        console.error(error);
-      });
-      }
+      };
+      loadUserID();
+       if(userID){
+        fetch(`http://localhost:8080/api/tickets/client/${userID}`, {})
+        .then(res=>{
+          if(!res.ok){
+            throw new Error("Failed to create ticket");
+          }
+          return res.json();
+        }).then(data=>{
+          console.log("New ticket:"+data);
+          setTicketData(data);
+        }).catch(error=>{
+          console.error(error);
+        });
+       }else {
+        console.log(userID);
+       }
+      
     },[])
+
     return (
       <View style={styles.container}>
         {/* Filters Section */}
@@ -149,11 +162,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
       flex: 1,
       fontSize: 13,
       fontWeight: '500',
-      color: '#333',
-    },
-    categoryCol: {
-      flex: 2,
-      fontSize: 13,
       color: '#333',
     },
     statusCol: {
