@@ -10,7 +10,7 @@ type User = {
 }
 
 
-const BASE_URL = 'http://192.168.137.1:8080/api/users';
+const BASE_URL = 'http://localhost:8080/api/users';
 
 export async function login(email: string, password: string): Promise<User> {
   const res = await fetch(`${BASE_URL}/login`, {

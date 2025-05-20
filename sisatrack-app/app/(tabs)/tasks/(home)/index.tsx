@@ -18,9 +18,9 @@ import { getTasksByTechId } from '../../../../lib/api/_tasks';
 export default function Tasks() {
       const [tasks, setTasks] = useState<task[]>([]);
   const [error, setError] = useState<string | null>(null);
-http://192.168.137.1:8080/api/tasks/technician/2
+
 useEffect(() => {
-  getTasksByTechId(2)
+  getTasksByTechId(12)
     .then((tasksFromApi) => {
       const converted = tasksFromApi.map((task: any) => ({
         id: task.taskID,
