@@ -77,6 +77,7 @@ export default function TabLayout() {
       )}
 
       {role === 'CLIENT' && (
+<<<<<<< HEAD
 
         <>
           <Tabs.Screen
@@ -96,6 +97,15 @@ export default function TabLayout() {
             }}
           />
         </>
+=======
+        <Tabs.Screen
+          name="tickets"
+          options={{
+            title: 'Tickets',
+            tabBarIcon: ({ color }) => <Ionicons name="list" size={24} color={color} />,
+          }}
+        />
+>>>>>>> 78bae91dee513fe494f665a464594413378b9cc4
       )}
 
       <Tabs.Screen

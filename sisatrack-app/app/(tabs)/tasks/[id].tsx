@@ -2,21 +2,20 @@ import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getTaskById } from '../../../lib/api/_tasks';
-    type task = {
-    id: number;
-    title: string;
-    company: string;
-    priority: 'High' | 'Medium' | 'Low';
-    description:string,
-    location: string;
-    date: Date;
-    clientName:string,
-    clientNumber:string,
-    status: 'Open' | 'In Progress' | 'Completed';
-    };
+import { getTaskById, updateTaskStatus } from '../../../lib/api/_tasks';
 
-
+type task = {
+  id: number;
+  title: string;
+  company: string;
+  priority: 'High' | 'Medium' | 'Low';
+  description: string,
+  location: string;
+  date: Date;
+  clientName: string,
+  clientNumber: string,
+  status: 'Open' | 'In Progress' | 'Completed';
+};
 
 export default function TaskDetails() {
   const { id } = useLocalSearchParams();
@@ -24,37 +23,35 @@ export default function TaskDetails() {
   const taskId = parseInt(id as string, 10);
   const [_task, setTask] = useState<task | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);  
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetchTask();
+  }, []);
 
-    useEffect(() => {
-      const fetchTask = async () => {
-        try {
-          const data: any = await getTaskById(taskId); // 👈 avoid typing mismatch
-          const converted = {
-            id: data.taskID,
-            title: data.ticket.title,
-            description: data.ticket.description,
-            clientName: data.ticket.client.name,
-            clientNumber: data.ticket.client.phoneNumber,
-            company: data.ticket?.client?.companyName ?? 'Unknown',
-            priority: data.ticket?.priority ?? 'Low',
-            location: 'N/A',
-            date: new Date(data.assignedDate),
-            status: data.status,
-          };
-          setTask(converted);
-        } catch (err) {
-          setError('Failed to load task.');
-        } finally {
-          setLoading(false);
-        }
+  const fetchTask = async () => {
+    try {
+      const data: any = await getTaskById(taskId);
+      const converted = {
+        id: data.taskID,
+        title: data.ticket.title,
+        description: data.ticket.description,
+        clientName: data.ticket.client.name,
+        clientNumber: data.ticket.client.phoneNumber,
+        company: data.ticket?.client?.companyName ?? 'Unknown',
+        priority: data.ticket?.priority ?? 'Low',
+        location: 'N/A',
+        date: new Date(data.assignedDate),
+        status: data.status,
       };
+      setTask(converted);
+    } catch (err) {
+      setError('Failed to load task.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      fetchTask();
-    }, []);
-
-  
   // If task not found
   if (!_task) {
     return (
@@ -104,7 +101,18 @@ export default function TaskDetails() {
       "Are you sure you want to begin this task?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Start", onPress: () => Alert.alert("Task started!") }
+        { 
+          text: "Start", 
+          onPress: async () => {
+            try {
+              await updateTaskStatus(taskId, 'In Progress');
+              fetchTask(); // Refresh task data
+              Alert.alert("Success", "Task started successfully!");
+            } catch (err) {
+              Alert.alert("Error", "Failed to update task status.");
+            }
+          } 
+        }
       ]
     );
   };
@@ -115,12 +123,21 @@ export default function TaskDetails() {
       "Mark this task as completed?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Complete", onPress: () => Alert.alert("Task completed!") }
+        { 
+          text: "Complete", 
+          onPress: async () => {
+            try {
+              await updateTaskStatus(taskId, 'Completed');
+              fetchTask(); // Refresh task data
+              Alert.alert("Success", "Task completed successfully!");
+            } catch (err) {
+              Alert.alert("Error", "Failed to update task status.");
+            }
+          } 
+        }
       ]
     );
   };
-
-  
 
   return (
     <ScrollView style={styles.container}>
@@ -189,7 +206,6 @@ export default function TaskDetails() {
         </View>
       </View>
 
-
       <View style={styles.card}>
         <View style={styles.cardTitle}>
         </View>
@@ -213,10 +229,10 @@ export default function TaskDetails() {
             <Text style={styles.btnText}>Start Task</Text>
           </TouchableOpacity>
         )}
-        {_task.status === 'Open' && (
-          <TouchableOpacity style={styles.btnSecondary} onPress={handleCompleteTask}>
-            <Ionicons name="checkmark" size={16} color="#000000" />
-            <Text style={styles.btnSecondaryText}>Complete Task</Text>
+        {_task.status === 'In Progress' && (
+          <TouchableOpacity style={styles.btnPrimary} onPress={handleCompleteTask}>
+            <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+            <Text style={styles.btnText}>Complete Task</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.btnOutline} onPress={() => router.back()}>
@@ -302,7 +318,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
-    cardTitleText: {
+  cardTitleText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#343a40',
@@ -350,7 +366,7 @@ const styles = StyleSheet.create({
   btnPrimary: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6c63ff',
+    backgroundColor: '#FFD700',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -376,7 +392,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   btnText: {
-    color: '#ffffff',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -392,7 +408,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginTop: 16,
-    backgroundColor: '#6c63ff',
+    backgroundColor: '#FFD700',
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
