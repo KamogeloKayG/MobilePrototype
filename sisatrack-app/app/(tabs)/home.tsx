@@ -39,71 +39,107 @@ export default function Home() {
     new: 0
   });
   
-  // Recent activities will be derived from tasks later
+  // This is where audit of tasks will be shown
   const [recentActivities, setRecentActivities] = useState([
-    { id: 1, text: 'Work order #1234 completed', time: '2 hours ago' },
-    { id: 2, text: 'New task assigned: Air conditioning repair', time: '4 hours ago' },
-    { id: 3, text: 'Replaced server cooling unit at DataCorp', time: '1 day ago' },
-    { id: 4, text: 'Received parts for pending repair job', time: '2 days ago' },
+    { id: 1, text: 'Assigned a new Task', time: '2 hours ago' },
   ]);
 
+  // Helper function to compare if two objects are equal
+  const areTasksEqual = (tasks1: Task[], tasks2: Task[]) => {
+    if (tasks1.length !== tasks2.length) return false;
+    return tasks1.every((task1, index) => {
+      const task2 = tasks2[index];
+      return task1.id === task2.id && 
+             task1.status === task2.status && 
+             task1.title === task2.title &&
+             task1.company === task2.company;
+    });
+  };
+
+  const areStatsEqual = (stats1: any, stats2: any) => {
+    return stats1.total === stats2.total &&
+           stats1.inProgress === stats2.inProgress &&
+           stats1.completed === stats2.completed &&
+           stats1.new === stats2.new;
+  };
+
   // Load user data and tasks
-  useEffect(() => {
-    const loadData = async () => {
-      try {
+  const loadData = async () => {
+    try {
+      // Only show loading indicator on initial load
+      if (tasks.length === 0) {
         setIsLoading(true);
-        
-        // Get user ID and role from AsyncStorage
-        const userID = await AsyncStorage.getItem('userID');
-        const userRole = await AsyncStorage.getItem('userRole');
-        
-        if (userRole) {
-          setRole(userRole.toLowerCase());
-        }
-        
-        if (userID) {
-          // Fetch user data to get the name
+      }
+      
+      // Get user ID and role from AsyncStorage
+      const userID = await AsyncStorage.getItem('userID');
+      const userRole = await AsyncStorage.getItem('userRole');
+      
+      if (userRole && role !== userRole.toLowerCase()) {
+        setRole(userRole.toLowerCase());
+      }
+      
+      if (userID) {
+        // Fetch user data to get the name (only on initial load)
+        if (userName === 'User') {
           const userData = await getUserById(parseInt(userID));
           if (userData) {
             setUserName(`${userData.name} ${userData.surname}`);
           }
-          
-          // Fetch tasks assigned to this technician
-          const technicianTasksData = await getTasksByTechId(parseInt(userID));
-          
-          // Convert API response to match our Task type
-          const convertedTasks = technicianTasksData.map((task: any) => ({
-            id: task.taskID,
-            title: task.ticket.title,
-            company: task.ticket.client.companyName,
-            priority: task.ticket.priority,
-            location: task.ticket.client.location || "N/A",
-            date: new Date(task.assignedDate),
-            status: task.status,
-          }));
-          
+        }
+        
+        // Fetch tasks assigned to this technician
+        const technicianTasksData = await getTasksByTechId(parseInt(userID));
+        
+        // Convert API response to match our Task type
+        const convertedTasks = technicianTasksData.map((task: any) => ({
+          id: task.taskID,
+          title: task.ticket.title,
+          company: task.ticket.client.companyName,
+          priority: task.ticket.priority,
+          location: task.ticket.client.location || "N/A",
+          date: new Date(task.assignedDate),
+          status: task.status,
+        }));
+        
+        // Only update tasks if they've actually changed
+        if (!areTasksEqual(tasks, convertedTasks)) {
           setTasks(convertedTasks);
-          
-          // Calculate task statistics
-          const stats = {
-            total: convertedTasks.length,
-            inProgress: convertedTasks.filter(task => task.status === 'In Progress').length,
-            completed: convertedTasks.filter(task => task.status === 'Completed').length,
-            new: convertedTasks.filter(task => task.status === 'Open').length
-          };
+        }
+        
+        // Calculate task statistics
+        const stats = {
+          total: convertedTasks.length,
+          inProgress: convertedTasks.filter(task => task.status === 'In Progress').length,
+          completed: convertedTasks.filter(task => task.status === 'Completed').length,
+          new: convertedTasks.filter(task => task.status === 'Open').length
+        };
+        
+        // Only update stats if they've changed
+        if (!areStatsEqual(taskStats, stats)) {
           setTaskStats(stats);
-          
-          // Find the first task with "In Progress" status to display as current
-          const inProgressTask = convertedTasks.find(task => task.status === 'In Progress');
+        }
+        
+        // Find the first task with "In Progress" status to display as current
+        const inProgressTask = convertedTasks.find(task => task.status === 'In Progress');
+        const currentTaskChanged = 
+          (!currentTask && inProgressTask) || 
+          (currentTask && !inProgressTask) ||
+          (currentTask && inProgressTask && currentTask.id !== inProgressTask.id);
+        
+        if (currentTaskChanged) {
           setCurrentTask(inProgressTask || null);
         }
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Initial load
     loadData();
     
     // Set greeting based on time of day
@@ -113,6 +149,14 @@ export default function Home() {
     else if (hour < 18) greeting = 'Good Afternoon';
     else greeting = 'Good Evening';
     setGreeting(greeting);
+    
+    // Set up interval for regular refreshes (every 30 seconds)
+    const interval = setInterval(() => {
+      loadData();
+    }, 30000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(interval);
   }, []);
 
   // Format date for display
