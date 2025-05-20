@@ -30,6 +30,7 @@ export async function login(email: string, password: string): Promise<User> {
 
   // Save role and other info for later
   await AsyncStorage.setItem('userRole', user.role);
+  console.log(user.Role);
   await AsyncStorage.setItem('userID', user.userID.toString());
 
   return user;

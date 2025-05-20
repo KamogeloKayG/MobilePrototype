@@ -71,7 +71,7 @@ export default function TabLayout() {
 
       {role === 'CLIENT' && (
         <Tabs.Screen
-          name="tickets/index"
+          name="tickets"
           options={{
             title: 'Tickets',
             tabBarIcon: ({ color }) => <Ionicons name="list" size={24} color={color} />,
