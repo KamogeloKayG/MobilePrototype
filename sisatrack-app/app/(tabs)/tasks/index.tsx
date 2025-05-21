@@ -1,60 +1,67 @@
 import TaskCard from '@/components/taskCard';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getTasksByTechId } from '../../../lib/api/_tasks';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from 'expo-router';
 
-    type task = {
-    id: number;
-    title: string;
-    company: string;
-    priority: 'High' | 'Medium' | 'Low';
-    location: string;
-    date: Date;
-    status: 'Open' | 'In Progress' | 'Completed';
-    };
-
+type task = {
+  id: number;
+  title: string;
+  company: string;
+  priority: 'High' | 'Medium' | 'Low';
+  location: string;
+  date: Date;
+  status: 'Open' | 'In Progress' | 'Completed';
+};
 
 export default function Tasks() {
-      const [tasks, setTasks] = useState<task[]>([]);
+  const [tasks, setTasks] = useState<task[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'Open' | 'Completed'>('Open');
 
-useEffect(() => {
-    const fetchTasks = async () => {
-        try {
-            // Get user ID from AsyncStorage
-            const userID = await AsyncStorage.getItem('userID');
-            // Use the actual userID or fallback to 2 if not available
-            const userId = userID ? parseInt(userID) : 2;
-            
-            const tasksFromApi = await getTasksByTechId(userId);
-            const converted = tasksFromApi.map((task: any) => ({
-                id: task.taskID,
-                title: task.ticket.title,
-                company: task.ticket.client.companyName,
-                priority: task.ticket.priority,
-                location: "N/A", 
-                date: new Date(task.assignedDate),
-                status: task.status,
-            }));
-            
-            setTasks(converted);
-        } catch (err: any) {
-            setError(err.message);
-        }
-    };
-    
-    fetchTasks();
-}, []);
+  const fetchTasks = useCallback(async () => {
+    try {
+      // Get user ID from AsyncStorage
+      const userID = await AsyncStorage.getItem('userID');
+      // Use the actual userID or fallback to 2 if not available
+      const userId = userID ? parseInt(userID) : 2;
+      
+      const tasksFromApi = await getTasksByTechId(userId);
+      const converted = tasksFromApi.map((task: any) => ({
+        id: task.taskID,
+        title: task.ticket.title,
+        company: task.ticket.client.companyName,
+        priority: task.ticket.priority,
+        location: "N/A", 
+        date: new Date(task.assignedDate),
+        status: task.status,
+      }));
+      
+      setTasks(converted);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, []);
 
-        const openTasks = tasks.filter(task => task.status !== 'Completed');
-        const completedTasks = tasks.filter(task => task.status === 'Completed');
-        const filteredTasks = activeTab === 'Open' ? openTasks : completedTasks;
+  // Fetch tasks when component mounts
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  // Fetch tasks when the screen comes into focus (returning from another screen)
+  useFocusEffect(
+    useCallback(() => {
+      fetchTasks();
+    }, [fetchTasks])
+  );
+
+  const openTasks = tasks.filter(task => task.status !== 'Completed');
+  const completedTasks = tasks.filter(task => task.status === 'Completed');
+  const filteredTasks = activeTab === 'Open' ? openTasks : completedTasks;
 
   return (
-    
     <View style={styles.container}>
       {/* Tasks Title Bar */}
       <View style={styles.titleBar}>
@@ -67,23 +74,33 @@ useEffect(() => {
           style={[styles.tab, activeTab === 'Open' && styles.activeTab]} 
           onPress={() => setActiveTab('Open')}
         >
-          <Text style={styles.tabText}>Open({openTasks.length})</Text>
+          <Text style={[styles.tabText, activeTab === 'Open' && styles.activeTabText]}>
+            Open({openTasks.length})
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'Completed' && styles.activeTab]} 
           onPress={() => setActiveTab('Completed')}
         >
-          <Text style={styles.tabText}>Completed({completedTasks.length})</Text>
+          <Text style={[styles.tabText, activeTab === 'Completed' && styles.activeTabText]}>
+            Completed({completedTasks.length})
+          </Text>
         </TouchableOpacity>
       </View>
 
-      
       {/* Task List */}
       <ScrollView style={styles.taskList}>
-        {filteredTasks.map((task) => (
-          <TaskCard key={task.id} {...task} />
-        ))}
+        {error && (
+          <Text style={styles.errorText}>Error loading tasks: {error}</Text>
+        )}
+        {filteredTasks.length === 0 ? (
+          <Text style={styles.noTasksText}>No {activeTab.toLowerCase()} tasks found</Text>
+        ) : (
+          filteredTasks.map((task) => (
+            <TaskCard key={task.id} {...task} />
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -158,6 +175,18 @@ const styles = StyleSheet.create({
   taskList: {
     flex: 1,
     padding: 12,
+  },
+  errorText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: colors.error,
+    fontSize: 16,
+  },
+  noTasksText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: colors.text.secondary,
+    fontSize: 16,
   },
   taskCard: {
     backgroundColor: colors.surface,
