@@ -10,7 +10,7 @@ type User = {
 }
 
 
-const BASE_URL = 'http://localhost:8080/api/users';
+const BASE_URL = 'http://192.168.137.1:8080/api/users';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

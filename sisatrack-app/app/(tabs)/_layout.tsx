@@ -11,12 +11,11 @@ export default function TabLayout() {
     AsyncStorage.getItem('userRole').then((savedRole) => {
       if (savedRole) {
         const upperRole = savedRole.toUpperCase();
-        console.log('Loaded role:', upperRole); // ✅ log the correct value
+        console.log('Loaded role:', upperRole);
         setRole(upperRole);
       }
     });
   }, []);
-
 
   if (!role) return null; // wait until role is loaded
 
@@ -53,61 +52,36 @@ export default function TabLayout() {
         },
       }}
     >
-      {role === 'TECHNICIAN' && (
-        <>
-          <Tabs.Screen
-            name="home"
-            options={{
-              title: 'Home',
-              tabBarIcon: ({ color }) => (
-                <Ionicons name="home-outline" size={24} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="tasks"
-            options={{
-              title: 'Tasks',
-              tabBarIcon: ({ color }) => (
-                <Ionicons name="list" size={24} color={color} />
-              ),
-            }}
-          />
-        </>
-      )}
-
-      {role === 'CLIENT' && (
-<<<<<<< HEAD
-
-        <>
-          <Tabs.Screen
-            name="home"
-            options={{
-              title: 'Home',
-              tabBarIcon: ({ color }) => (
-                <Ionicons name="home-outline" size={24} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="tickets"
-            options={{
-              title: 'Tickets',
-              tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color} />,
-            }}
-          />
-        </>
-=======
-        <Tabs.Screen
-          name="tickets"
-          options={{
-            title: 'Tickets',
-            tabBarIcon: ({ color }) => <Ionicons name="list" size={24} color={color} />,
-          }}
-        />
->>>>>>> 78bae91dee513fe494f665a464594413378b9cc4
-      )}
-
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="home-outline" size={24} color={color} />
+          ),
+        }}
+      />
+      
+      <Tabs.Screen
+        name="tasks"
+        options={{
+          title: 'Tasks',
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="list" size={24} color={color} />
+          ),
+          href: role === 'TECHNICIAN' ? '/tasks' : null,
+        }}
+      />
+      
+      <Tabs.Screen
+        name="tickets"
+        options={{
+          title: 'Tickets',
+          tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color} />,
+          href: role === 'CLIENT' ? '/tickets' : null,
+        }}
+      />
+      
       <Tabs.Screen
         name="profile"
         options={{

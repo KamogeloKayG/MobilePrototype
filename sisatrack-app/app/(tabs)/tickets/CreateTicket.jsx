@@ -23,6 +23,7 @@ const TroubleshootingFormScreen = () => {
   const [pickerTitle, setPickerTitle] = useState('');
   const [pickerCallback, setPickerCallback] = useState(() => { });
   const [pressedIndex, setPressedIndex] = useState(null);
+  const [userID,setUserID]=useState();
 
   const questions = {
     cctv: [
@@ -156,7 +157,17 @@ const TroubleshootingFormScreen = () => {
   const handleSubmit = () => {
     // Generate diagnostic summary
     const diagnosticSummary = generateDiagnosticSummary();
-    const userID = AsyncStorage.getItem('userID');
+    const loadUserID = async () => {
+      try {
+        const storedID = await AsyncStorage.getItem('userID');
+        if (storedID) {
+          setUserID(storedID); // storedID is a string
+        }
+      } catch (error) {
+        console.error('Failed to load userID from storage:', error);
+      }
+    };
+    loadUserID();
     console.log("userID"+userID)
     if(!userID){
       return ;
@@ -166,7 +177,7 @@ const TroubleshootingFormScreen = () => {
       priority: "N/A",
       status: "Open",
       client: {
-        userID: userID
+        userID: 1
       }
     };
 
@@ -202,7 +213,7 @@ const TroubleshootingFormScreen = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.form}>
-        <Text style={styles.title}>🛠️ New Support Ticket</Text>
+        <Text style={styles.title}>🛠 New Support Ticket</Text>
 
         <Text style={styles.label}>Maintenance Category</Text>
         <TouchableOpacity

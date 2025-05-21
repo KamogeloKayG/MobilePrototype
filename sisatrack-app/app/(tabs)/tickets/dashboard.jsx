@@ -64,13 +64,13 @@ export default function TicketDashboard() {
   
       console.log('About to fetch data');
   
-      const cachedData = await AsyncStorage.getItem('ticketData');
-      if (!cachedData) {
+
+      
         const userID = await AsyncStorage.getItem('userID');
         if (!userID) return;
   
         try {
-          const res = await fetch(`http://localhost:8080/api/tickets/client/${userID}`);
+          const res = await fetch(`http://localhost:8080/api/tickets/client/${1}`);
           if (!res.ok) throw new Error('Failed to fetch ticket data');
           const data = await res.json();
           console.log('New ticket:', data);
@@ -79,14 +79,14 @@ export default function TicketDashboard() {
         } catch (error) {
           console.error(error);
         }
-      } else {
+    
         try {
           const parsed = JSON.parse(cachedData);
           setTicketData(parsed);
         } catch (e) {
           console.error('Failed to parse cached ticketData:', e);
         }
-      }
+      
     };
   
     fetchTickets();

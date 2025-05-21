@@ -11,8 +11,11 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserById } from '../../lib/api/auth';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 
 export default function Profile() {
+  const navigation = useNavigation();
+  
   const [userInfo, setUserInfo] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
@@ -66,28 +69,37 @@ export default function Profile() {
     }
   };
   
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
-          style: 'destructive',
-          onPress: async () => {
-            // Clear user session data
+  const handleLogout = async () => {
+    // Alert.alert(
+    //   'Logout',
+    //   'Are you sure you want to logout?',
+    //   [
+    //     { text: 'Cancel', style: 'cancel' },
+    //     { 
+    //       text: 'Logout', 
+    //       style: 'destructive',
+    //       onPress: async () => {
             try {
+              // Clear user session data
               await AsyncStorage.multiRemove(['userID', 'userRole']);
-              // In a real app, you would navigate to login screen here
-              Alert.alert('Logged out successfully');
+              
+              // Navigate to login screen using CommonActions
+              // This approach bypasses TypeScript navigation typing issues
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [{ name: 'login' as any }], // Replace 'Login' with your actual login screen name
+                })
+              );
+              
             } catch (error) {
               console.error('Error logging out:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
             }
-          }
-        }
-      ]
-    );
+    //       }
+    //     }
+    //   ]
+    // );
   };
   
   const handleEditProfile = () => {

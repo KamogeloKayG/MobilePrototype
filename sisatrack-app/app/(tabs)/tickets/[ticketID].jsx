@@ -26,19 +26,14 @@ export default function TicketDetailsScreen() {
     async function loadTicketData() {
       try {
         const storedTickets = await AsyncStorage.getItem("ticketData");
-        if (storedTickets) {
-          const tickets = JSON.parse(storedTickets);
-          const ticket = tickets.find((t) => t.ticketID == ticketID);
-          setTicketData(ticket || null);
-        }else {
-          const userID = await AsyncStorage.getItem('userID');
+       
           // Now do something with userID if needed (you're not using it here though)
           const response = await fetch(`http://localhost:8080/api/tickets/${ticketID}`);
           if (!response.ok) throw new Error("Could not fetch tickets");
           const data = await response.json();
           setTicketData(data);
           console.log("Ticket data found:"+data);
-        }
+        
       } catch (error) {
         console.error("Failed to load ticket data", error);
       }
@@ -64,7 +59,7 @@ export default function TicketDetailsScreen() {
       .finally(() => setLoading(false));
   }, [ticketData]);
 
-  if ( !ticketData) {
+  if (!ticketData) {
     return (
       <View style={[styles.container, { justifyContent: "center", flex: 1 }]}>
         <ActivityIndicator size="large" color="#facc15" />
@@ -160,10 +155,10 @@ export default function TicketDetailsScreen() {
       <View style={styles.buttonWrapper}>
         <Pressable
           style={styles.reviewButton}
-          onPress={() => router.push("/review")}
+          onPress={() => router.push("/tickets")}
         >
           <FontAwesome name="star" size={14} color="white" />
-          <Text style={styles.reviewText}>Review</Text>
+          <Text style={styles.reviewText}>Back</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -194,7 +189,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   statusBadge: {
-    backgroundColor: "#22c55e", // green for "Completed"
+    backgroundColor: "#22c55e", 
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 999,

@@ -20,10 +20,44 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
   export default function TicketsScreen() {
     const [search, setSearch] = useState('');
     const router = useRouter();
-    const [ticketData,setTicketData]=useState([]);
-    const [userID,setUserID]=useState();
+    const [ticketData, setTicketData] = useState([]);
+    const [userID, setUserID] = useState(null);
     
-    
+    // First useEffect: Load userID from AsyncStorage
+    useEffect(() => {
+      const loadUserID = async () => {
+        try {
+          const storedID = await AsyncStorage.getItem('userID');
+          if (storedID) {
+            setUserID(storedID);
+          }
+        } catch (error) {
+          console.error('Failed to load userID from storage:', error);
+        }
+      };
+      loadUserID();
+    }, []);
+
+    // Second useEffect: Fetch tickets when userID changes
+    useEffect(() => {
+      if (userID) {
+        console.log('Fetching tickets for userID:', userID);
+        fetch(`http://localhost:8080/api/tickets/client/${userID}`)
+          .then(res => {
+            if (!res.ok) {
+              throw new Error("Failed to fetch tickets");
+            }
+            return res.json();
+          })
+          .then(data => {
+            console.log("Fetched tickets:", data);
+            setTicketData(data);
+          })
+          .catch(error => {
+            console.error('Error fetching tickets:', error);
+          });
+      }
+    }, [userID]); // This effect runs when userID changes
   
     const renderItem = ({ item }) => (
       <View style={styles.row}>
@@ -38,37 +72,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
         </TouchableOpacity>
       </View>
     );
-  
-    useEffect(()=>{
-      const loadUserID = async () => {
-        try {
-          const storedID = await AsyncStorage.getItem('userID');
-          if (storedID) {
-            setUserID(storedID); // storedID is a string
-          }
-        } catch (error) {
-          console.error('Failed to load userID from storage:', error);
-        }
-      };
-      loadUserID();
-       if(userID){
-        fetch(`http://localhost:8080/api/tickets/client/${userID}`, {})
-        .then(res=>{
-          if(!res.ok){
-            throw new Error("Failed to create ticket");
-          }
-          return res.json();
-        }).then(data=>{
-          console.log("New ticket:"+data);
-          setTicketData(data);
-        }).catch(error=>{
-          console.error(error);
-        });
-       }else {
-        console.log(userID);
-       }
-      
-    },[])
 
     return (
       <View style={styles.container}>
@@ -187,4 +190,3 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
       fontSize: 12,
     },
   });
-  
